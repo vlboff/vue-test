@@ -13,7 +13,20 @@ const REPOSITORY_ISSUE_QUERY = `query ($name: String!, $owner: String!) {
           id,
           state,
           title,
-          body
+          body,
+          comments (last: 20) {
+            edges {
+              node {
+                id,
+                body,
+                createdAt,
+                author {
+                  login,
+                  avatarUrl
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -34,7 +47,7 @@ onMounted(async () => {
 
 <template>
     <div class="issues">
-      <h2>ISSUES:</h2>
+      <h2>ISSUES: </h2>
       <IssueCard v-for="issue in issues" :key="issue.node.id" :title="issue.node.title" :state="issue.node.state" :body="issue.node.body"/>
     </div>
 </template>
