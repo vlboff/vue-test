@@ -1,10 +1,12 @@
 <script setup>
 import Dropdown from './components/Dropdown.vue';
+import Issues from './components/Issues.vue';
 </script>
 
 <template>
   <main>
     <Dropdown />
+    <Issues />
   </main>
 </template>
 

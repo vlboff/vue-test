@@ -1,16 +1,30 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { makeRequest, token } from '../api/request';
 //   import { useStore } from 'vuex';
 
+const OCTOCAT_REPOSITORIES_QUERY = `{
+  user(login:"octocat") {
+    repositories (last: 100) {
+      nodes {
+        name,
+        id,
+        owner {
+          id,
+          login
+        }
+      }
+    }
+  }
+}`
 
 const filter = ref('');
 const repositories = ref([]);
 const filteredRepositories = ref([]);
-const selectedRepository = ref('');
+const selectedRepositoryName = ref('');
+const selectedRepositoryOwner = ref('');
 const show = ref(false);
 
-const url = 'https://api.github.com/graphql'
-const token = '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'
 //   const store = useStore();
 
 const toggleShow = () => {
@@ -23,47 +37,22 @@ const toggleShow = () => {
 
 function filterRepositories() {
   filteredRepositories.value = repositories.value.filter((repository) =>
-    repository.name.toLowerCase().includes(filter.value.toLowerCase())
+    repository.name.toLowerCase().includes(filter.value.toLowerCase()) || repository.owner.login.toLowerCase().includes(filter.value.toLowerCase())
   );
 }
 
-
-function handleSelection(repositoryName) {
-  selectedRepository.value = repositoryName;
+function handleSelection(repositoryName, ownerLogin) {
+  selectedRepositoryName.value = repositoryName;
+  selectedRepositoryOwner.value = ownerLogin;
   show.value = false;
-  console.log('Selected repository:', selectedRepository.value);
+  console.log(`Selected repository: ${selectedRepositoryName.value}, owner: ${selectedRepositoryOwner.value}`);
 }
 
 onMounted(async () => {
-  repositories.value = await makeRequest(token, `{
-      user(login:"octocat") {
-        repositories (last: 100) {
-          nodes {
-            name,
-            id
-          }
-        }
-      }
-    }`
-  );
-
+  const data = await makeRequest(token, OCTOCAT_REPOSITORIES_QUERY);
+  repositories.value = data.data.user.repositories.nodes;
   filterRepositories();
 });
-
-const makeRequest = async (token, query) => {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer  ${token}`,
-    },
-    body: JSON.stringify({
-      query,
-    }),
-  });
-  const data = await res.json();
-  return data.data.user.repositories.nodes;
-};
 </script>
 
 <template>
@@ -75,37 +64,38 @@ const makeRequest = async (token, query) => {
     <div class="dropdown__block" v-show="show">
       <input type="text" class="dropdown__input" v-model="filter" @input="filterRepositories" placeholder="Search repository" />
       <ul class="dropdown__list">
-        <li v-for="repository in filteredRepositories" :key="repository.id" :value="repository.name" @click="() => handleSelection(repository.name)">
-          {{ repository.name }}
+        <li v-for="repository in filteredRepositories" :key="repository.id" :value="repository.name" @click="() => handleSelection(repository.name, repository.owner.login)">
+          {{ repository.name }} (owner: {{ repository.owner.login }})
         </li>
       </ul>
     </div>
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .dropdown {
   display: flex;
   margin: 0 auto;
   gap: 10px;
   max-width: fit-content;
-}
-.dropdown__block {
-  display: flex;
-  gap: 10px;
-  flex-direction: column;
-}
 
-.dropdown__list {
-  max-height: 300px;
-  overflow-y: auto;
-}
+  &__block {
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
 
-.dropdown__list li {
-  cursor: pointer;
-}
+    .dropdown__list {
+      max-height: 300px;
+      overflow-y: auto;
 
-.dropdown__list li:hover {
-  color: #535bf2;
+      li {
+        cursor: pointer;
+      }
+
+      li:hover {
+        color: #535bf2;
+      }
+    }
+  }
 }
 </style>
